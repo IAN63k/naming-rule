@@ -282,6 +282,27 @@ body {
   font-size: 0.95rem;
 }
 
+.import-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.file-label {
+  display: inline-block;
+}
+
+.import-row input:focus-visible + .file-label {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.editor:disabled .file-label {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .message {
   margin: 0;
   min-height: 1.5em;

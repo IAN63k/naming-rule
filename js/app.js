@@ -3,8 +3,10 @@ import { pickWinner, targetRotation, indexAtPointer, spinDuration } from './pick
 import { Wheel } from './wheel.js';
 import { launchConfetti, stopConfetti } from './confetti.js';
 import { initPrefsPanel } from './prefs-panel.js';
+import { parseCsv } from './csv.js';
 
 const MAX_NAMES = 100;
+const MAX_FILE_BYTES = 1024 * 1024;
 const MIN_TO_SPIN = 2;
 
 const $ = (id) => document.getElementById(id);
@@ -18,6 +20,7 @@ const el = {
   nameInput: $('name-input'),
   bulkInput: $('bulk-input'),
   bulkBtn: $('bulk-btn'),
+  csvInput: $('csv-input'),
   message: $('message'),
   list: $('names-list'),
   emptyList: $('empty-list'),
@@ -180,6 +183,21 @@ el.addForm.addEventListener('submit', (event) => {
 
 el.bulkBtn.addEventListener('click', () => {
   if (addNames(el.bulkInput.value.split(/\r?\n/))) el.bulkInput.value = '';
+});
+
+el.csvInput.addEventListener('change', async () => {
+  const [file] = el.csvInput.files;
+  el.csvInput.value = '';
+  if (!file) return;
+  if (file.size > MAX_FILE_BYTES) {
+    showMessage('El archivo es demasiado grande (máximo 1 MB).', 'warn');
+    return;
+  }
+  try {
+    addNames(parseCsv(await file.text()));
+  } catch {
+    showMessage('No se pudo leer el archivo.', 'warn');
+  }
 });
 
 el.clearBtn.addEventListener('click', () => {

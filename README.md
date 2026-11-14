@@ -5,7 +5,8 @@ Hecha solo con HTML, CSS y JavaScript (módulos ES), sin dependencias ni paso de
 
 ## Funciones
 
-- Agregar nombres uno a uno o pegando varios (uno por línea).
+- Agregar nombres uno a uno, pegando varios (uno por línea) o importando un archivo CSV
+  (separado por comas o por punto y coma; se respetan las comillas).
 - Se ignoran líneas vacías y espacios sobrantes; se avisa de los duplicados.
 - Ruleta dibujada en `<canvas>` con porciones iguales y colores distintos.
 - Giro animado de 4 a 6 segundos con desaceleración suave.
@@ -23,6 +24,7 @@ js/wheel.js        # Dibujo y animación de la ruleta
 js/picker.js       # Selección del resultado y cálculo de ángulos (funciones puras)
 js/storage.js      # Persistencia en localStorage
 js/confetti.js     # Confeti en canvas
+js/csv.js          # Lectura de archivos CSV
 js/prefs-panel.js  # Preferencias
 ```
 

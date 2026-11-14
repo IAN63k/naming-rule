@@ -44,6 +44,12 @@
           <button id="bulk-btn" class="btn btn-secondary" type="button">Agregar todos</button>
         </details>
 
+        <div class="import-row">
+          <input id="csv-input" class="visually-hidden" type="file" accept=".csv,.txt,text/csv,text/plain">
+          <label for="csv-input" class="btn btn-secondary file-label">Importar archivo CSV</label>
+          <span class="hint">Nombres separados por comas o uno por línea.</span>
+        </div>
+
         <p id="message" class="message" role="status" aria-live="polite"></p>
 
         <ul id="names-list" class="names-list" aria-label="Lista de nombres"></ul>
