@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ruleta de nombres</title>
+  <meta name="description" content="Ruleta para elegir un nombre al azar.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%A1%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./css/styles.css">
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <h1 id="app-title" class="title">Ruleta de nombres</h1>
+    <p class="subtitle">Agrega nombres, gira la ruleta y descubre quién sale.</p>
+  </header>
+
+  <main class="layout">
+    <section class="wheel-area" aria-label="Ruleta">
+      <div class="wheel-wrap">
+        <div class="pointer" aria-hidden="true"></div>
+        <canvas id="wheel" class="wheel" role="img" aria-label="Ruleta sin nombres"></canvas>
+      </div>
+      <button id="spin-btn" class="btn btn-primary btn-spin" type="button" disabled>Girar</button>
+      <p id="spin-hint" class="hint">Agrega al menos 2 nombres para girar.</p>
+    </section>
+
+    <section class="names-area" aria-labelledby="names-title">
+      <h2 id="names-title" class="section-title">Nombres <span id="names-count" class="badge">0</span></h2>
+
+      <fieldset id="editor" class="editor">
+        <legend class="visually-hidden">Editar la lista de nombres</legend>
+
+        <form id="add-form" class="add-form" autocomplete="off">
+          <label for="name-input" class="visually-hidden">Nombre</label>
+          <input id="name-input" class="input" type="text" maxlength="60" placeholder="Escribe un nombre">
+          <button class="btn btn-secondary" type="submit">Agregar</button>
+        </form>
+
+        <details class="bulk">
+          <summary>Agregar varios (uno por línea)</summary>
+          <label for="bulk-input" class="visually-hidden">Varios nombres, uno por línea</label>
+          <textarea id="bulk-input" class="input textarea" rows="5" placeholder="Ana&#10;Luis&#10;María"></textarea>
+          <button id="bulk-btn" class="btn btn-secondary" type="button">Agregar todos</button>
+        </details>
+
+        <p id="message" class="message" role="status" aria-live="polite"></p>
+
+        <ul id="names-list" class="names-list" aria-label="Lista de nombres"></ul>
+        <p id="empty-list" class="empty">Todavía no hay nombres.</p>
+
+        <button id="clear-btn" class="btn btn-ghost" type="button" hidden>Vaciar lista</button>
+      </fieldset>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Hecho con HTML, CSS y JavaScript.</p>
+  </footer>
+
+  <dialog id="winner-dialog" class="winner-dialog" aria-labelledby="winner-label">
+    <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+    <div class="winner-card">
+      <p id="winner-label" class="winner-label">¡Ha salido!</p>
+      <p id="winner-name" class="winner-name"></p>
+      <div class="winner-actions">
+        <button id="remove-winner-btn" class="btn btn-secondary" type="button">Quitar al ganador de la lista</button>
+        <button id="close-winner-btn" class="btn btn-primary" type="button">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="prefs-dialog" class="prefs-dialog" aria-labelledby="prefs-title">
+    <form method="dialog" class="prefs-form">
+      <h2 id="prefs-title" class="section-title">Ajustes</h2>
+
+      <fieldset class="prefs-group">
+        <legend>Resultado fijo</legend>
+        <label for="pf-target">Nombre</label>
+        <select id="pf-target" class="input"></select>
+        <div class="radio-row">
+          <label><input type="radio" name="pf-mode" value="once" checked> Solo el próximo giro</label>
+          <label><input type="radio" name="pf-mode" value="always"> Siempre</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="prefs-group">
+        <legend>Probabilidades (%)</legend>
+        <div id="pf-weights" class="weights"></div>
+        <p id="pf-total" class="hint"></p>
+      </fieldset>
+
+      <div class="prefs-actions">
+        <button id="pf-reset" class="btn btn-ghost" type="button">Restablecer a aleatorio puro</button>
+        <button class="btn btn-primary" value="close">Cerrar</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
