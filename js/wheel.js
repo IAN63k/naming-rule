@@ -38,6 +38,8 @@ export class Wheel {
     this.ctx = canvas.getContext('2d');
     this.names = [];
     this.rotation = 0;
+    this.offset = 0; // Desvío temporal al arrastrar; no altera `rotation`.
+    this.settleFrame = 0;
     this.size = 0;
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
@@ -87,7 +89,7 @@ export class Wheel {
     const count = this.names.length;
     const slice = TAU / count;
     // -π/2 coloca el inicio de la porción 0 bajo el puntero superior.
-    const start = this.rotation - Math.PI / 2 + i * slice;
+    const start = this.rotation + this.offset - Math.PI / 2 + i * slice;
     const color = sliceColor(i, count);
 
     ctx.beginPath();
@@ -134,8 +136,32 @@ export class Wheel {
     ctx.fill();
   }
 
+  /** Desvía la ruleta temporalmente (arrastre). */
+  setOffset(offset) {
+    cancelAnimationFrame(this.settleFrame);
+    this.offset = offset;
+    this.draw();
+  }
+
+  /** Devuelve suavemente la ruleta a su posición tras un arrastre. */
+  settle(duration = 280) {
+    cancelAnimationFrame(this.settleFrame);
+    const from = this.offset;
+    if (!from) return;
+    const startTime = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      this.offset = from * (1 - easeOutCubic(t));
+      this.draw();
+      if (t < 1) this.settleFrame = requestAnimationFrame(step);
+    };
+    this.settleFrame = requestAnimationFrame(step);
+  }
+
   /** Anima hasta `target` en `duration` ms. Resuelve al detenerse. */
   spin(target, duration) {
+    cancelAnimationFrame(this.settleFrame);
+    this.offset = 0;
     const from = this.rotation;
     const distance = target - from;
     const startTime = performance.now();

@@ -27,8 +27,42 @@ export function saveNames(names) {
   write(NAMES_KEY, names);
 }
 
+const CACHE_KEY = 'ruleta.c';
+
+export const GESTURE_DEFAULTS = Object.freeze({ enabled: true, threshold: 0.8, windowMs: 700 });
+
+const clamp = (value, min, max, fallback) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.min(max, Math.max(min, num)) : fallback;
+};
+
 export function emptyPrefs() {
-  return { target: null, mode: 'once', weights: {} };
+  return { target: null, mode: 'once', weights: {}, gesture: { ...GESTURE_DEFAULTS } };
+}
+
+/** Plantillas propias: [{ name, points: [{x, y}] }]. */
+export function loadTemplates() {
+  const raw = read(CACHE_KEY, []);
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((t) => t && typeof t.n === 'string' && Array.isArray(t.p))
+    .map((t) => ({ name: t.n, points: t.p.map(([x, y]) => ({ x, y })) }))
+    .filter((t) => t.points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)));
+}
+
+export function saveTemplates(templates) {
+  write(CACHE_KEY, templates.map((t) => ({
+    n: t.name,
+    p: t.points.map((p) => [Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10]),
+  })));
+}
+
+export function clearTemplates() {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch {
+    // Sin almacenamiento disponible: nada que borrar.
+  }
 }
 
 export function loadPrefs() {
@@ -43,9 +77,17 @@ export function loadPrefs() {
       if (Number.isFinite(num) && num >= 0) prefs.weights[name] = num;
     }
   }
+  if (raw.g && typeof raw.g === 'object') {
+    prefs.gesture = {
+      enabled: raw.g.e !== false,
+      threshold: clamp(raw.g.h, 0.5, 0.99, GESTURE_DEFAULTS.threshold),
+      windowMs: clamp(raw.g.v, 300, 1500, GESTURE_DEFAULTS.windowMs),
+    };
+  }
   return prefs;
 }
 
 export function savePrefs(prefs) {
-  write(UI_KEY, { t: prefs.target, m: prefs.mode, w: prefs.weights });
+  const { enabled, threshold, windowMs } = prefs.gesture;
+  write(UI_KEY, { t: prefs.target, m: prefs.mode, w: prefs.weights, g: { e: enabled, h: threshold, v: windowMs } });
 }

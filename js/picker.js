@@ -36,12 +36,14 @@ function weightedIndex(probabilities, rng) {
 
 /**
  * Decide el índice ganador.
- * Prioridad: nombre fijado > porcentajes > uniforme.
+ * Prioridad: armado (`armed`) > nombre fijado (`target`) > porcentajes > uniforme.
  */
 export function pickWinner(names, prefs = {}, rng = Math.random) {
   if (names.length === 0) return -1;
-  const fixed = prefs.target ? names.indexOf(prefs.target) : -1;
-  if (fixed !== -1) return fixed;
+  for (const name of [prefs.armed, prefs.target]) {
+    const fixed = name ? names.indexOf(name) : -1;
+    if (fixed !== -1) return fixed;
+  }
   const probabilities = resolveWeights(names, prefs.weights);
   if (probabilities) return weightedIndex(probabilities, rng);
   return Math.floor(rng() * names.length);

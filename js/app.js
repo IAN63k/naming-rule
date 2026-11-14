@@ -1,5 +1,8 @@
 import { loadNames, saveNames, loadPrefs, savePrefs, emptyPrefs } from './storage.js';
 import { pickWinner, targetRotation, indexAtPointer, spinDuration } from './picker.js';
+import { interpretGesture, CLEAR } from './gesture.js';
+import { trackStrokes, createGestureSession } from './stroke.js';
+import { templates } from './templates.js';
 import { Wheel } from './wheel.js';
 import { launchConfetti, stopConfetti } from './confetti.js';
 import { initPrefsPanel } from './prefs-panel.js';
@@ -7,12 +10,15 @@ import { parseCsv } from './csv.js';
 
 const MAX_NAMES = 100;
 const MAX_FILE_BYTES = 1024 * 1024;
+const MAX_NUDGE = 0.2;   // rad que la ruleta puede desviarse al arrastrar
+const NUDGE_RATIO = 0.2; // fracción del giro del puntero que sigue la ruleta
 const MIN_TO_SPIN = 2;
 
 const $ = (id) => document.getElementById(id);
 const el = {
   title: $('app-title'),
   canvas: $('wheel'),
+  pointer: document.querySelector('.pointer'),
   spinBtn: $('spin-btn'),
   spinHint: $('spin-hint'),
   editor: $('editor'),
@@ -38,6 +44,7 @@ const state = {
   prefs: loadPrefs(),
   spinning: false,
   lastWinner: null,
+  armed: null, // Solo en memoria: vale para el próximo giro.
 };
 
 const wheel = new Wheel(el.canvas);
@@ -53,6 +60,7 @@ function showMessage(text, type = 'info') {
 /** Limpia ajustes que apunten a nombres que ya no están en la lista. */
 function prunePrefs() {
   const { prefs, names } = state;
+  if (state.armed && !names.includes(state.armed)) state.armed = null;
   if (prefs.target && !names.includes(prefs.target)) prefs.target = null;
   for (const name of Object.keys(prefs.weights)) {
     if (!names.includes(name)) delete prefs.weights[name];
@@ -103,10 +111,19 @@ function commitNames() {
   panel.refresh();
 }
 
+/** Número visible: 1–9, el décimo es 0 y desde el 11 sigue normal. */
+const listNumber = (index) => (index === 9 ? 0 : index + 1);
+const indexForDigit = (digit) => (digit === 0 ? 9 : digit - 1);
+
 function renderList() {
-  el.list.replaceChildren(...state.names.map((name) => {
+  el.list.replaceChildren(...state.names.map((name, index) => {
     const li = document.createElement('li');
     li.className = 'name-item';
+    const num = document.createElement('span');
+    num.className = 'name-num';
+    num.textContent = listNumber(index);
+    num.setAttribute('aria-hidden', 'true');
+    li.append(num);
     const span = document.createElement('span');
     span.className = 'name-text';
     span.textContent = name;
@@ -145,10 +162,13 @@ function updateSpinControls() {
 
 async function spin() {
   if (state.spinning || state.names.length < MIN_TO_SPIN) return;
+  gestureSession.flush(); // Un gesto aún en ventana de espera cuenta para este giro.
   const names = [...state.names];
-  const index = pickWinner(names, state.prefs);
+  const armedUsed = Boolean(state.armed && names.includes(state.armed));
+  const index = pickWinner(names, { ...state.prefs, armed: state.armed });
+  state.armed = null;
 
-  if (state.prefs.target && state.prefs.mode === 'once') {
+  if (!armedUsed && state.prefs.target && state.prefs.mode === 'once') {
     state.prefs.target = null;
     savePrefs(state.prefs);
   }
@@ -202,7 +222,7 @@ el.csvInput.addEventListener('change', async () => {
 
 el.clearBtn.addEventListener('click', () => {
   state.names = [];
-  state.prefs = emptyPrefs();
+  state.prefs = { ...emptyPrefs(), gesture: state.prefs.gesture };
   commitNames();
   showMessage('Lista vaciada.');
 });
@@ -226,10 +246,70 @@ el.winnerDialog.addEventListener('click', (event) => {
   if (event.target === el.winnerDialog || event.target === el.confetti) closeWinner();
 });
 
+// --- Gesto sobre la ruleta ----------------------------------------------------
+
+let lastPointerType = 'mouse';
+
+/** Micro-parpadeo del puntero (y vibración breve en táctil). */
+function signal(times) {
+  el.pointer.animate(
+    [{ opacity: 1 }, { opacity: 0.85 }, { opacity: 1 }],
+    { duration: 150, iterations: times },
+  );
+  if (lastPointerType === 'touch' && navigator.vibrate) {
+    navigator.vibrate(times === 1 ? 15 : [15, 135, 15]);
+  }
+}
+
+function handleGesture(strokes) {
+  const { result } = interpretGesture(strokes, templates.all(), state.prefs.gesture.threshold);
+  if (result === CLEAR) {
+    state.armed = null;
+    signal(2);
+    return;
+  }
+  if (result === null) return;
+  const name = state.names[indexForDigit(Number(result))];
+  if (!name) return;
+  state.armed = name;
+  signal(1);
+}
+
+const gestureSession = createGestureSession({
+  getWindowMs: () => state.prefs.gesture.windowMs,
+  onGesture: handleGesture,
+});
+
+const angleFromCenter = (point, rect) => Math.atan2(point.y - rect.height / 2, point.x - rect.width / 2);
+const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+trackStrokes(el.canvas, {
+  enabled: () => !state.spinning,
+  onStart: (stroke) => {
+    lastPointerType = stroke.type;
+    stroke.startAngle = angleFromCenter(stroke.points[0], stroke.rect);
+    gestureSession.strokeStarted();
+  },
+  onMove: (stroke) => {
+    const current = angleFromCenter(stroke.points[stroke.points.length - 1], stroke.rect);
+    const turn = wrapAngle(current - stroke.startAngle) * NUDGE_RATIO;
+    wheel.setOffset(Math.max(-MAX_NUDGE, Math.min(MAX_NUDGE, turn)));
+  },
+  onEnd: (stroke) => {
+    wheel.settle();
+    if (state.prefs.gesture.enabled && !state.spinning) gestureSession.strokeEnded(stroke.points);
+  },
+});
+
 const panel = initPrefsPanel({
   getNames: () => state.names,
   getPrefs: () => state.prefs,
   onChange: () => savePrefs(state.prefs),
+  onReset: () => {
+    state.armed = null;
+    gestureSession.cancel();
+  },
+  templates,
   trigger: el.title,
 });
 

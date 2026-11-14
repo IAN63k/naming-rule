@@ -1,19 +1,24 @@
 import { resolveWeights } from './picker.js';
+import { initGestureSettings } from './prefs-gestures.js';
 
 const CLICKS_TO_OPEN = 5;
 const CLICK_GAP_MS = 600;
 
 /**
  * Panel de ajustes. Recibe accesos al estado de la app para no duplicarlo.
- * @param {{ getNames: () => string[], getPrefs: () => object, onChange: () => void, trigger: HTMLElement }} deps
+ * @param {{ getNames: () => string[], getPrefs: () => object, onChange: () => void,
+ *           onReset: () => void, templates: object, trigger: HTMLElement }} deps
  */
-export function initPrefsPanel({ getNames, getPrefs, onChange, trigger }) {
+export function initPrefsPanel({ getNames, getPrefs, onChange, onReset, templates, trigger }) {
   const dialog = document.getElementById('prefs-dialog');
   const targetSelect = document.getElementById('pf-target');
   const modeInputs = dialog.querySelectorAll('input[name="pf-mode"]');
   const weightsBox = document.getElementById('pf-weights');
   const totalEl = document.getElementById('pf-total');
   const resetBtn = document.getElementById('pf-reset');
+
+  const gestures = initGestureSettings({ getPrefs, onChange, templates });
+  dialog.addEventListener('close', () => gestures.close());
 
   const format = (n) => n.toLocaleString('es', { maximumFractionDigits: 1 });
 
@@ -112,6 +117,7 @@ export function initPrefsPanel({ getNames, getPrefs, onChange, trigger }) {
     prefs.mode = 'once';
     prefs.weights = {};
     onChange();
+    onReset();
     render();
   });
 
@@ -124,6 +130,7 @@ export function initPrefsPanel({ getNames, getPrefs, onChange, trigger }) {
     if (dialog.open) return;
     render();
     dialog.showModal();
+    gestures.open();
   }
 
   function toggle() {

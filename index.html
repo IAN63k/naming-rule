@@ -96,6 +96,30 @@
         <p id="pf-total" class="hint"></p>
       </fieldset>
 
+      <fieldset class="prefs-group">
+        <legend>Gestos</legend>
+        <label class="check-row"><input type="checkbox" id="pf-g-on"> Reconocer gestos sobre la ruleta</label>
+
+        <label for="pf-g-th">Umbral de coincidencia: <output id="pf-g-th-out" for="pf-g-th"></output></label>
+        <input id="pf-g-th" type="range" min="0.6" max="0.95" step="0.01">
+
+        <label for="pf-g-win">Espera para el segundo trazo: <output id="pf-g-win-out" for="pf-g-win"></output></label>
+        <input id="pf-g-win" type="range" min="300" max="1500" step="50">
+
+        <canvas id="pf-pad" class="pad" role="img" aria-label="Área para dibujar trazos de prueba"></canvas>
+        <p id="pf-pad-status" class="hint pad-status" role="status" aria-live="polite"></p>
+
+        <div class="pad-actions">
+          <label for="pf-train-digit" class="visually-hidden">Dígito a entrenar</label>
+          <select id="pf-train-digit" class="input input-sm pad-digit"></select>
+          <button id="pf-train" class="btn btn-secondary" type="button">Entrenar</button>
+          <button id="pf-test" class="btn btn-secondary" type="button">Probar</button>
+        </div>
+
+        <p id="pf-custom-count" class="hint"></p>
+        <button id="pf-templates-reset" class="btn btn-ghost" type="button">Borrar plantillas propias</button>
+      </fieldset>
+
       <div class="prefs-actions">
         <button id="pf-reset" class="btn btn-ghost" type="button">Restablecer a aleatorio puro</button>
         <button class="btn btn-primary" value="close">Cerrar</button>
